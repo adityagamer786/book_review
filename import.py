@@ -3,8 +3,12 @@ import os, csv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-engine = create_engine(os.getenv("DATABSE_URL"))
+engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
+
+engine.execute("DROP TABLE users CASCADE")
+engine.execute("DROP TABLE reviews CASCADE")
+engine.execute("DROP TABLE books CASCADE")
 
 engine.execute(
  """CREATE TABLE books(
@@ -48,5 +52,5 @@ for isbn, title, author, year in books:
       "author": author,
       "year": year
     })
-    printf(f"Added {title} into books")
+    print(f"Added {title} into books")
 db.commit()
