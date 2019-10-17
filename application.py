@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, session
+from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -23,4 +23,33 @@ db = scoped_session(sessionmaker(bind=engine))
 
 @app.route("/")
 def index():
-    return "Project 1: TODO"
+    ####################################
+    #Redirect user to dashboard if signed in otherwise to register
+    if session.get("user_id") is None:
+        return render_template('register.html')
+    return redirect(url_for('dashboard'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    ####################################
+    #Redirect user to register if made GET request
+    if request.method == 'GET':
+        return render_template('register.html', message="Please fill the form")
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+    name = request.form.get('name')
+
+    #Check for invalid entry
+    if ( len(name) == 0 or len(username) == 0 or len(password) == 0):
+        return render_template("register.html", message="Please fill all credentails")
+
+    #Check if username already exists
+    if (db.execute("SELECT username FROM users WHERE username = :username", {"username": username})).rowcount != 0:
+        return render_template("register.html", message="Username already taken")
+
+    password_hash = bcrypt.generate_password_hash(password).decode()
+    db.execute("INSERT INTO users(username, password, name) VALUES)(:username, :password, :name)", {"username": username, "password": password_hash, "name": name})
+    db.commit()
+
+    return render_template('login.html', message="Successfully registered. Now Sign In")
