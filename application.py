@@ -79,3 +79,16 @@ def login():
 def dashboard():
     if session.get("user_id") is not None:
         return render_template('dashboard.html', name=session["name"])
+    else:
+        return render_template('login.html', message="Please login first")
+
+@app.route("/books")
+def results():
+    isbn = request.form.get("isbn")
+    author = request.form.get("author")
+    title = request.form.get("title")
+
+    books = db.execute("SELECT * FROM books WHERE LOWER(isbn) LIKE :isbn AND LOWER(title) LIKE :title AND LOWER(author) LIKE :author", {"isbn": f"%{isbn}%", "title": f"%{title}%", "author": {f"%{author}%"}}).fetchall()
+
+    return render_template('results.html', books=books)
+    
