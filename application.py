@@ -33,7 +33,7 @@ def index():
 def register():
     ####################################
     #Redirect user to register if made GET request
-    if request.method == 'GET':
+    if request.method != 'POST':
         return render_template('register.html', message="Please fill the form")
 
     username = request.form.get('username')
@@ -53,3 +53,24 @@ def register():
     db.commit()
 
     return render_template('login.html', message="Successfully registered. Now Sign In")
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    if request.method != POST:
+        return render_template('login.html', message="Please fill the form")
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    user = db.execute("SELECT id, password, name FROM users WHERE username = :username", {"username": username}).fetchone()
+
+    if user None:
+        return render_template('login.html', message="Please enter correct username/password")
+
+    password_hash = user.password
+    user_id = user.id
+    name = user.name
+
+    if bcrypt.check_password_hash(password_hash, password):
+        session["user_id"] = user_id
+        session["name"] = name
+        return redirect(url_for('dashboard', title="Dashboard", name=session["name"]))
