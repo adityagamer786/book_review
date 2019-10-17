@@ -24,7 +24,7 @@ db = scoped_session(sessionmaker(bind=engine))
 @app.route("/")
 def index():
     ####################################
-    #Redirect user to dashboard if signed in otherwise to register
+    #Redirect user to dashboard if logged in otherwise to register
     if session.get("user_id") is None:
         return render_template('register.html')
     return redirect(url_for('dashboard'))
@@ -52,7 +52,7 @@ def register():
     db.execute("INSERT INTO users(username, password, name) VALUES)(:username, :password, :name)", {"username": username, "password": password_hash, "name": name})
     db.commit()
 
-    return render_template('login.html', message="Successfully registered. Now Sign In")
+    return render_template('login.html', message="Successfully registered. Now Log In")
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -63,7 +63,7 @@ def login():
 
     user = db.execute("SELECT id, password, name FROM users WHERE username = :username", {"username": username}).fetchone()
 
-    if user None:
+    if user is None:
         return render_template('login.html', message="Please enter correct username/password")
 
     password_hash = user.password
@@ -73,4 +73,9 @@ def login():
     if bcrypt.check_password_hash(password_hash, password):
         session["user_id"] = user_id
         session["name"] = name
-        return redirect(url_for('dashboard', title="Dashboard", name=session["name"]))
+        return redirect(url_for('dashboard'))
+
+@app.route("/dashboard")
+def dashboard():
+    if session.get("user_id") is not None:
+        return render_template('dashboard.html', name=session["name"])
