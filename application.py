@@ -1,9 +1,12 @@
 import os
 
+import requests
+import json
 from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
 
@@ -91,4 +94,17 @@ def results():
     books = db.execute("SELECT * FROM books WHERE LOWER(isbn) LIKE :isbn AND LOWER(title) LIKE :title AND LOWER(author) LIKE :author", {"isbn": f"%{isbn}%", "title": f"%{title}%", "author": {f"%{author}%"}}).fetchall()
 
     return render_template('results.html', books=books)
-    
+
+@app.route("/book/<int:book_id>")
+def bookDetail(book_id):
+    if session.get("user_id") is None:
+        return render_template('login.html', message="Please log in first")
+
+    book = db.execute("SELECT * FROM books WHERE id = :book_id", {"book_id": book_id}).fetchone()
+
+    reviews = db.execute("SELECT review, rating, name FROM reviews JOIN users on reviews.user_id = users.id WHERE book_id = :book_id", {"book_id": book_id}).fetchall()
+    already_reviewed = db.execute("SELECT * FROM reviews WHERE book_id = :book_id and user_id = :user_id", {"user_id": user_id}).rowcount >= 1
+
+    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": os.getenv("API_KEY"), "isbn": book.isbn}).json()
+
+    return render_template('book.html', book = book, res=res['books'][0], reviews=reviews, already_reviewed=already_reviewed)
