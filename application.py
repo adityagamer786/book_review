@@ -2,7 +2,7 @@ import os
 
 import requests
 import json
-from flask import Flask, session, render_template, request, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -108,3 +108,47 @@ def bookDetail(book_id):
     res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": os.getenv("API_KEY"), "isbn": book.isbn}).json()
 
     return render_template('book.html', book = book, res=res['books'][0], reviews=reviews, already_reviewed=already_reviewed)
+
+@app.route("/book/<int:book_id>", methods=['POST'])
+def review(book_id):
+    if session.get("user_id") is None:
+        return render_template('login.html', message="Please login first")
+
+    rating = request.form.get('rating')
+    review = request.form.get('review')
+    user_id = session["user_id"]
+
+    already_reviewed = db.execute("SELECT * FROM reviews WHERE book_id = :book_id and user_id = :user_id", {"book_id": book_id, "user_id": session["user_id"]}).rowcount >= 1
+
+    if already_reviewed:
+        return render_template('reviewed.html', success=False, message="You have already reviewed this book", book_id=book_id)
+
+    if int(rating) >= 1 and int(rating) <= 5:
+        db.execute("INSERT INTO reviews(user_id, book_id, review, rating) VALUES(:user_id, :book_id, :review, :rating)", {"user_id": user_id, "book_id": book_id, "review": review, "rating": rating})
+        db.commit()
+        return render_template("reviewed.html", success=True)
+    else:
+        return render_template("reviewed.html", success=False, message="Rating must be in between 1 and 5", book_id = book_id)
+
+@app.route("/api/<string:isbn>")
+def api(isbn):
+    book_detail = db.execute("SELECT * FROM books WHERE isbn = :isbn", {"isbn": isbn})
+    review_stats = db.execute("SELECT AVG(rating), COUNT(review) FROM books JOIN reviews on books.id = reviews.book_id WHERE isbn = :isbn ", {"isbn": isbn}).fetchone()
+
+    if review_stats is None:
+        review_count = 0
+        average_score = None
+    else:
+        review_count = review_stats[0]
+        average_score = review_stats[0]
+    if book_detail is not None:
+        res = {
+            "title": book_detail.title
+            "author": book_detail.author
+            "year": book_detail.year
+            "isbn": book_detail.isbn
+            "review_count": review_count,
+            "average_score": average_score
+        }
+        return jsonify(res)
+    return f"No book is having isbn as {isbn}"
