@@ -152,3 +152,8 @@ def api(isbn):
         }
         return jsonify(res)
     return f"No book is having isbn as {isbn}"
+
+@app.route("/logout")
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('login'))
