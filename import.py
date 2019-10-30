@@ -6,6 +6,10 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+engine.execute("DROP TABLE IF EXISTS users CASCADE")
+engine.execute("DROP TABLE IF EXISTS reviews CASCADE")
+engine.execute("DROP TABLE IF EXISTS books CASCADE")
+
 # engine.execute("DROP TABLE users CASCADE")
 # engine.execute("DROP TABLE reviews CASCADE")
 # engine.execute("DROP TABLE books CASCADE")
@@ -24,7 +28,7 @@ engine.execute(
 engine.execute(
   """CREATE TABLE users(
     id SERIAL PRIMARY KEY,
-    username UNIQUE VARCHAR NOT NULL,
+    username VARCHAR UNIQUE NOT NULL,
     name VARCHAR NOT NULL,
     password VARCHAR NOT NULL
    )
